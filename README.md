@@ -8,8 +8,10 @@ ExampleServer is an example implementation of the Server class.
 
 Instructions:
 - 
-Use the dataReceived(...) method to handle received data
-Use the handleConnections() for periodical updates (but not for updates like a gameloop), you can change the rate of these updates
+Use the dataReceived(...) method to handle received data.
+
+Use the handleConnections() for periodical updates (but not for updates like a gameloop), you can change the rate of these updates.
+
 Use send(DatagramPacket packet) and send(byte[] data, InetAddress address, int port) to send data to peers. The latter is preferred since it creates the packet for you. 
 
 Disclaimer
