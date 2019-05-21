@@ -26,7 +26,8 @@ public abstract class Server {
 	 */
 	private int port;
 	
-	protected volatile boolean running = false;
+	private volatile boolean running = false;
+	private volatile boolean periodicUpdatesRunning = true;
 	
 	/**
 	 * A thread used for receiving client packets
@@ -39,9 +40,9 @@ public abstract class Server {
 	private Thread packetProcessingThread;
 	
 	/**
-	 * A thread to get notifications every 2.5 seconds for example handling connections/clients
+	 * A thread to make periodic updates
 	 */
-	private Thread connectionHandlingThread;
+	private Thread periodicUpdateThread;
 	
 	/**
 	 * Maximum receive buffer size
@@ -71,6 +72,8 @@ public abstract class Server {
 	private ConcurrentLinkedQueue<Integer> byteLDown = new ConcurrentLinkedQueue<>();
 	private ConcurrentLinkedQueue<Integer> byteLUp = new ConcurrentLinkedQueue<>();
 	
+	private int updatePeriod = 2500;
+	
 	public Server(int port) {
 		this.port = port;
 	}
@@ -88,11 +91,11 @@ public abstract class Server {
 		
 		receiveThread = new Thread(() -> listen(), "Receive Thread");
 		packetProcessingThread = new Thread(() -> processPackets(), "Packet Processing Thread");
-		connectionHandlingThread = new Thread(() -> handleTimingOut(), "Connection Handling Thread");
+		periodicUpdateThread = new Thread(() -> dispatchPeriodicUpdates(), "Periodic Updates Thread");
 		
 		receiveThread.start();
 		packetProcessingThread.start();
-		connectionHandlingThread.start();
+		periodicUpdateThread.start();
 	}
 	
 	
@@ -114,19 +117,19 @@ public abstract class Server {
 	}
 		
 	/**
-	 * Calls handleConnections every 2.5 seconds
+	 * Calls periodicUpdate every updatePeriod
 	 */
-	private void handleTimingOut() {
-		while(running) {
+	private void dispatchPeriodicUpdates() {
+		while(periodicUpdatesRunning) {
 			try {
-				Thread.sleep(2500);
+				Thread.sleep(updatePeriod);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			handleConnections();
+			periodicUpdate();
 		}
 		try {
-			connectionHandlingThread.join(1000);
+			periodicUpdateThread.join(1000);
 		} catch (InterruptedException e) {
 			System.out.println("Server time out handling thread closing failed!");
 			e.printStackTrace();
@@ -160,7 +163,7 @@ public abstract class Server {
 					packetProcessTimes += endTime - startTime;
 				} else {
 					try {
-						Thread.sleep(15);
+						Thread.sleep(10);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -179,7 +182,7 @@ public abstract class Server {
 	 * This method is called every 2.5 seconds
 	 */
 	
-	protected abstract void handleConnections();
+	protected abstract void periodicUpdate();
 	
 	/**
 	 * 
@@ -223,6 +226,20 @@ public abstract class Server {
 	}
 	
 	
+	public void setUpdatePeriod(int period) {
+		this.updatePeriod = period;
+	}
+	
+	public void stopPeriodicUpdates() {
+		periodicUpdatesRunning = false;
+	}
+
+	public void resumePeriodicUpdates() {
+		periodicUpdatesRunning = true;
+		periodicUpdateThread = new Thread(() -> dispatchPeriodicUpdates(), "Periodic Updates Thread");
+		periodicUpdateThread.start();
+	}
+	
 	private synchronized void addPacketToProcessingQueue(final DatagramPacket packet) {
 		packetsToProcess.add(packet);
 	}
@@ -255,7 +272,7 @@ public abstract class Server {
 		try {
 			receiveThread.join(1000);
 			packetProcessingThread.join(1000);
-			connectionHandlingThread.join(1000);
+			periodicUpdateThread.join(1000);
 		} catch (InterruptedException e) {
 			System.out.println("Server closing failed!");
 			e.printStackTrace();

@@ -10,6 +10,7 @@ public class ExampleServer extends Server {
 	public ExampleServer(int port) {
 		super(port);
 		commandHandler = new Thread(() -> handleCommands(), "Server Command Thread");
+		setUpdatePeriod(1000);
 	}
 
 	@Override
@@ -20,7 +21,7 @@ public class ExampleServer extends Server {
 	}
 	
 	@Override
-	protected void handleConnections() {
+	protected void periodicUpdate() {
 		System.out.println("The server is in good health!");
 		// Use this method to handle connections (meaning your own implementation of connections)
 		// or you can use this to make periodical updates to the game state, application state etc.
@@ -49,14 +50,15 @@ public class ExampleServer extends Server {
 		while (true) {
 			String command = scanner.nextLine();
 			if(command.equalsIgnoreCase("/info")) {
+				stopPeriodicUpdates();
 				System.out.println("Requested server info...");
 				System.out.println("Server uptime: " + (System.currentTimeMillis() - startTime) + " ms");
 			} else if (command.equalsIgnoreCase("/send")) {
+				resumePeriodicUpdates();
 				System.out.println("Sending hello world!");
 				try {
 					send("Hello world!".getBytes(), InetAddress.getByName("localhost"), 25565);
 				} catch (UnknownHostException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else if(command.equalsIgnoreCase("/exit")) {
