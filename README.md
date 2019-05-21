@@ -14,5 +14,5 @@ Use send(DatagramPacket packet) and send(byte[] data, InetAddress address, int p
 
 Disclaimer
 -
-Now this is not at all a professional or robust implementation and should be used on your own responsibilty
+Now this is not at all a professional or robust implementation and should be used at your own responsibilty
 This is intended to show how to implement a basic UDP server
