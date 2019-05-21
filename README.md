@@ -14,6 +14,8 @@ Use the handleConnections() for periodical updates (but not for updates like a g
 
 Use send(DatagramPacket packet) and send(byte[] data, InetAddress address, int port) to send data to peers. The latter is preferred since it creates the packet for you. 
 
+Use the setUpdatePeriod(long millis) to change the update period. Now it's NOT recommended to make the period too small since it will affect performance. If you need a fast periodic update, make your own goddamn loop...
+
 Disclaimer
 -
 Now this is not at all a professional or robust implementation and should be used at your own responsibilty
