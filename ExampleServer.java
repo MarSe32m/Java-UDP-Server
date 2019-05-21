@@ -10,7 +10,7 @@ public class ExampleServer extends Server {
 	public ExampleServer(int port) {
 		super(port);
 		commandHandler = new Thread(() -> handleCommands(), "Server Command Thread");
-		setUpdatePeriod(1000);
+		setUpdatePeriod(3000);
 	}
 
 	@Override
@@ -50,11 +50,9 @@ public class ExampleServer extends Server {
 		while (true) {
 			String command = scanner.nextLine();
 			if(command.equalsIgnoreCase("/info")) {
-				stopPeriodicUpdates();
 				System.out.println("Requested server info...");
 				System.out.println("Server uptime: " + (System.currentTimeMillis() - startTime) + " ms");
 			} else if (command.equalsIgnoreCase("/send")) {
-				resumePeriodicUpdates();
 				System.out.println("Sending hello world!");
 				try {
 					send("Hello world!".getBytes(), InetAddress.getByName("localhost"), 25565);
@@ -66,7 +64,6 @@ public class ExampleServer extends Server {
 				break;
 			}
 		}
-		
 		scanner.close();
 	}
 	

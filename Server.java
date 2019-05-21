@@ -120,7 +120,7 @@ public abstract class Server {
 	 * Calls periodicUpdate every updatePeriod
 	 */
 	private void dispatchPeriodicUpdates() {
-		while(periodicUpdatesRunning) {
+		while(periodicUpdatesRunning && running) {
 			try {
 				Thread.sleep(updatePeriod);
 			} catch (InterruptedException e) {
