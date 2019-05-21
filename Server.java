@@ -1,4 +1,4 @@
-package serverCore;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -65,6 +65,10 @@ public abstract class Server {
 	private int bytesPerSecondDown = 0;
 	private int bytesPerSecondUp = 0;
 
+	/**
+	 * Used for calculating received and sent bytes
+	 */
+	
 	private ConcurrentLinkedQueue<Integer> byteLDown = new ConcurrentLinkedQueue<>();
 	private ConcurrentLinkedQueue<Integer> byteLUp = new ConcurrentLinkedQueue<>();
 	
@@ -78,13 +82,14 @@ public abstract class Server {
 		} catch (SocketException e) {
 			e.printStackTrace();
 			System.err.println("Couldn't start server, error ocurred!");
+			System.err.println("Are you sure you haven't already executed a server on this port?");
 			return;
 		}
 		running = true;
 		
-		receiveThread = new Thread(() -> listen(), "Listening Thread");
+		receiveThread = new Thread(() -> listen(), "Receive Thread");
 		packetProcessingThread = new Thread(() -> processPackets(), "Packet Processing Thread");
-		connectionHandlingThread = new Thread(() -> handleTimingOut(), "Handling Connections Thread");
+		connectionHandlingThread = new Thread(() -> handleTimingOut(), "Connection Handling Thread");
 		
 		receiveThread.start();
 		packetProcessingThread.start();
@@ -107,7 +112,6 @@ public abstract class Server {
 			addPacketToProcessingQueue(packet);
 		}
 		serverSocket.close();
-		System.out.println("Listen thread ended");
 	}
 		
 	/**
@@ -122,7 +126,6 @@ public abstract class Server {
 			}
 			handleConnections();
 		}
-		System.out.println("Timeout thread ended");
 		try {
 			connectionHandlingThread.join(1000);
 		} catch (InterruptedException e) {
@@ -165,7 +168,6 @@ public abstract class Server {
 				}
 			}
 		}
-		System.out.println("Packet processing thread ended");
 		try {
 			packetProcessingThread.join(1000);
 		} catch (InterruptedException e) {
@@ -174,8 +176,33 @@ public abstract class Server {
 		}
 	}
 	
+	/**
+	 * This method is called every 2.5 seconds
+	 */
+	
 	protected abstract void handleConnections();
+	
+	/**
+	 * 
+	 * @param data is the received data
+	 * @param address is the address of the sender
+	 * @param port is the port of the sender
+	 */
 	protected abstract void dataReceived(final byte[] data, final InetAddress address, final int port);
+	
+	protected final synchronized void send(final byte[] data, final InetAddress address, final int port) {
+		DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
+		send(packet);
+	}
+	
+	protected final synchronized void send(final DatagramPacket packet) {
+		byteLUp.add(packet.getLength());
+		try {
+			serverSocket.send(packet);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 	
 	private void calculateBandwidth() {
 		int bytesDown = 0;
@@ -196,23 +223,6 @@ public abstract class Server {
 		byteLUp.add(0);
 	}
 	
-	protected void echoBack(final DatagramPacket packet) {
-		send(packet);
-	}
-	
-	protected void send(final byte[] data, final InetAddress address, final int port) {
-		DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
-		send(packet);
-	}
-	
-	protected void send(final DatagramPacket packet) {
-		byteLUp.add(packet.getLength());
-		try {
-			serverSocket.send(packet);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 	
 	private synchronized void addPacketToProcessingQueue(final DatagramPacket packet) {
 		packetsToProcess.add(packet);
@@ -226,18 +236,15 @@ public abstract class Server {
 		return returnString;
 	}
 	
-	public synchronized String getSummaryOfPackets() {
-		return "" + packetCount + " packets processed";
+	public synchronized String getPacketSummary() {
+		return packetCount + " packets processed";
 	}
-
 	
-	public abstract Vector<String> getPlayerNames();
-	
-	public synchronized int downloadBandwith() {
+	public synchronized int getDownloadBandwidth() {
 		return bytesPerSecondDown;
 	}
 	
-	public synchronized int uploadBandwith() {
+	public synchronized int getUploadBandwidth() {
 		return bytesPerSecondUp;
 	}
 	
@@ -254,7 +261,6 @@ public abstract class Server {
 			System.out.println("Server closing failed!");
 			e.printStackTrace();
 		}
-		System.out.println("Server shutdown successfully!");
 	}
 	
 }
